@@ -29,6 +29,7 @@ import (
 	"github.com/brocaar/loraserver/internal/backend/gateway"
 	"github.com/brocaar/loraserver/internal/common"
 	"github.com/brocaar/loraserver/internal/migrations"
+	"github.com/brocaar/loraserver/internal/stats"
 	"github.com/brocaar/loraserver/internal/uplink"
 	"github.com/brocaar/lorawan"
 	"github.com/brocaar/lorawan/band"
@@ -119,6 +120,11 @@ func run(c *cli.Context) error {
 	if err := server.Start(); err != nil {
 		log.Fatal(err)
 	}
+	// start the stats server
+	statsServer := stats.NewServer(lsCtx)
+	if err := statsServer.Start(); err != nil {
+		log.Fatal(err)
+	}
 
 	sigChan := make(chan os.Signal)
 	exitChan := make(chan struct{})
@@ -127,6 +133,9 @@ func run(c *cli.Context) error {
 	go func() {
 		log.Warning("stopping loraserver")
 		if err := server.Stop(); err != nil {
+			log.Fatal(err)
+		}
+		if err := statsServer.Stop(); err != nil {
 			log.Fatal(err)
 		}
 		exitChan <- struct{}{}
